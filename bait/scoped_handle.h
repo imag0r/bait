@@ -14,7 +14,7 @@ public:
     {
     }
 
-	scoped_handle_impl(const scoped_handle_impl&) = delete;
+    scoped_handle_impl(const scoped_handle_impl&) = delete;
 
     scoped_handle_impl& operator=(HANDLE handle)
     {
@@ -23,7 +23,7 @@ public:
         return *this;
     }
 
-	scoped_handle_impl& operator=(const scoped_handle_impl&) = delete;
+    scoped_handle_impl& operator=(const scoped_handle_impl&) = delete;
 
     ~scoped_handle_impl()
     {
