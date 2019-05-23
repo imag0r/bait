@@ -113,30 +113,39 @@ void append_text_to_file(const std::wstring& path, const std::wstring& text)
 
 int wmain(int argc, wchar_t* argv[])
 {
-	const auto snapshot = snapshot_processes();
-	const auto pid = ::GetCurrentProcessId();
-
-	std::wostringstream ss;
-	ss << timestamp() << L" " << user_name() << L" " << pid << L" " << ::GetCommandLineW() << L"\n\t";
-	auto it = snapshot.find(pid);
-	for (;;)
+	try
 	{
-		ss << it->second.szExeFile << L" (" << it->second.th32ProcessID << L")";
-		if (it->second.th32ParentProcessID == 0)
+		const auto snapshot = snapshot_processes();
+		const auto pid = ::GetCurrentProcessId();
+
+		std::wostringstream ss;
+		ss << timestamp() << L" " << user_name() << L" " << pid << L" " << ::GetCommandLineW() << L"\n\t";
+		auto it = snapshot.find(pid);
+		for (;;)
 		{
-			break;
+			ss << it->second.szExeFile << L" (" << it->second.th32ProcessID << L")";
+			if (it->second.th32ParentProcessID == 0)
+			{
+				break;
+			}
+			it = snapshot.find(it->second.th32ParentProcessID);
+			if (it == snapshot.end())
+			{
+				ss << L"\n";
+				break;
+			}
+			ss << L" <- ";
 		}
-		it = snapshot.find(it->second.th32ParentProcessID);
-		if (it == snapshot.end())
-		{
-			ss << L"\n";
-			break;
-		}
-		ss << L" <- ";
-	}
 	
-	const auto output = ss.str();
-	std::wcout << output;
-	append_text_to_file(default_output_path(), ss.str());
-	return 0;
+		const auto output = ss.str();
+		std::wcout << output;
+		append_text_to_file(default_output_path(), ss.str());
+
+		return 0;
+	}
+	catch (const std::exception& exc)
+	{
+		std::cerr << "Exception: " << exc.what() << std::endl;
+		return 1;
+	}
 }
