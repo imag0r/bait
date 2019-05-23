@@ -134,10 +134,6 @@ int wmain(int /*argc*/, wchar_t* /*argv*/[])
         for (;;)
         {
             ss << it->second.szExeFile << L" (" << it->second.th32ProcessID << L")";
-            if (it->second.th32ParentProcessID == 0)
-            {
-                break;
-            }
             it = snapshot.find(it->second.th32ParentProcessID);
             if (it == snapshot.end())
             {
