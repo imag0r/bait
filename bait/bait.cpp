@@ -80,6 +80,16 @@ std::wstring default_output_path()
 	return path;
 }
 
+std::wstring output_path()
+{
+	const auto ini_path = std::wstring(__wargv[0]) + L".ini";
+
+	std::wstring value(4096, 0);
+	const auto size = ::GetPrivateProfileStringW(L"bait", L"log", default_output_path().c_str(), &value[0], static_cast<DWORD>(value.size()), ini_path.c_str());
+	value.resize(size);
+	return value;
+}
+
 std::string utf16_to_utf8(const std::wstring& str)
 {
 	const DWORD codepage = CP_UTF8;
@@ -111,7 +121,7 @@ void append_text_to_file(const std::wstring& path, const std::wstring& text)
 	throw_win32_error_if(!::WriteFile(file, text_utf8.data(), static_cast<DWORD>(text_utf8.size()), &written, nullptr), "WriteFile");
 }
 
-int wmain(int argc, wchar_t* argv[])
+int wmain(int /*argc*/, wchar_t* /*argv*/[])
 {
 	try
 	{
@@ -139,7 +149,12 @@ int wmain(int argc, wchar_t* argv[])
 	
 		const auto output = ss.str();
 		std::wcout << output;
-		append_text_to_file(default_output_path(), ss.str());
+
+		const auto output_file = output_path();
+		if (!output_file.empty())
+		{
+			append_text_to_file(output_file, ss.str());
+		}
 
 		return 0;
 	}
