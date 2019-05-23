@@ -73,7 +73,7 @@ std::wstring timestamp()
 std::wstring default_output_path()
 {
 	std::wstring path(MAX_PATH, 0);
-	auto size = ::GetWindowsDirectoryW(&path[0], path.size());
+	auto size = ::GetWindowsDirectoryW(&path[0], static_cast<UINT>(path.size()));
 	throw_win32_error_if(!size, "GetWindowsDirectoryW");
 	path.resize(size);
 	path += L"\\Temp\\bait.txt";
@@ -108,7 +108,7 @@ void append_text_to_file(const std::wstring& path, const std::wstring& text)
 
 	const auto text_utf8 = utf16_to_utf8(text);
 	DWORD written = 0;
-	throw_win32_error_if(!::WriteFile(file, text_utf8.data(), text_utf8.size(), &written, nullptr), "WriteFile");
+	throw_win32_error_if(!::WriteFile(file, text_utf8.data(), static_cast<DWORD>(text_utf8.size()), &written, nullptr), "WriteFile");
 }
 
 int wmain(int argc, wchar_t* argv[])
