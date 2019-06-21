@@ -149,12 +149,12 @@ void log_execution()
         const auto pid = ::GetCurrentProcessId();
 
         std::wostringstream ss;
-        ss << timestamp() << "\n"
-            L"\tUser:    " << user_name() << "\n"
-            L"\tPID:     " << pid << L" " << "\n"
-            L"\tExe:     " << executable_path() << "\n"
-            L"\tModule:  " << module_path() << "\n"
-            L"\tCmdline: " << ::GetCommandLineW() << L"\n"
+        ss << timestamp() << "\r\n"
+            L"\tUser:    " << user_name() << "\r\n"
+            L"\tPID:     " << pid << L" " << "\r\n"
+            L"\tExe:     " << executable_path() << "\r\n"
+            L"\tModule:  " << module_path() << "\r\n"
+            L"\tCmdline: " << ::GetCommandLineW() << L"\r\n"
             L"\tCall:    ";
         auto it = snapshot.find(pid);
         for (;;)
@@ -163,7 +163,7 @@ void log_execution()
             it = snapshot.find(it->second.th32ParentProcessID);
             if (it == snapshot.end())
             {
-                ss << L"\n";
+                ss << L"\r\n";
                 break;
             }
             ss << L" <- ";
