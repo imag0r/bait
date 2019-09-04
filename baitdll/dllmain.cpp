@@ -206,7 +206,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
     {
     case DLL_PROCESS_ATTACH:
         g_thread = ::CreateThread(nullptr, 0, ThreadProc, nullptr, 0, nullptr);
-        log_execution();
         break;
     case DLL_PROCESS_DETACH:
         if (g_thread)
@@ -223,10 +222,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
     return TRUE;
 }
 
-#elif _CONSOLE
+#else
 int wmain(int /*argc*/, wchar_t* /*argv*/[])
 {
-    log_execution(true);
+    log_execution();
     return 0;
 }
 #endif
