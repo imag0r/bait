@@ -10,7 +10,15 @@
 
 #include "scoped_handle.h"
 
-typedef std::map<DWORD, PROCESSENTRY32W> process_snapshot;
+struct process_info
+{
+    uint32_t pid;
+    uint32_t parent_pid;
+    uint64_t start_time;
+    std::wstring exe_name;
+};
+
+typedef std::map<uint32_t, process_info> process_snapshot;
 
 inline void throw_win32_error(const char* msg, DWORD error = ::GetLastError())
 {
@@ -37,7 +45,25 @@ process_snapshot snapshot_processes()
 
     for (;;)
     {
-        snapshot.emplace(std::make_pair(entry.th32ProcessID, entry));
+        process_info info;
+        info.pid = entry.th32ProcessID;
+        info.parent_pid = entry.th32ParentProcessID;
+        info.exe_name = entry.szExeFile;
+        info.start_time = 0;
+
+        scoped_handle process = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ProcessID);
+        if (process.valid())
+        {
+            FILETIME creation_time, exit_time, kernel_time, user_time;
+            if (::GetProcessTimes(process, &creation_time, &exit_time, &kernel_time, &user_time))
+            {
+                info.start_time = creation_time.dwHighDateTime;
+                info.start_time <<= 32;
+                info.start_time |= creation_time.dwLowDateTime;
+            }
+        }
+
+        snapshot.emplace(std::make_pair(entry.th32ProcessID, info));
         if (!::Process32NextW(handle, &entry))
         {
             const auto error = ::GetLastError();
@@ -208,9 +234,10 @@ void log_execution()
         auto it = snapshot.find(pid);
         for (;;)
         {
-            ss << it->second.szExeFile << L" (" << it->second.th32ProcessID << L")";
-            it = snapshot.find(it->second.th32ParentProcessID);
-            if (it == snapshot.end())
+            ss << it->second.exe_name << L" (" << it->second.pid<< L")";
+            const auto start_time = it->second.start_time;
+            it = snapshot.find(it->second.parent_pid);
+            if (it == snapshot.end() || (it->second.start_time > start_time))
             {
                 ss << L"\r\n";
                 break;
