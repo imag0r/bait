@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <map>
+#include <vector>
 
 #include "scoped_handle.h"
 
@@ -58,6 +59,53 @@ std::wstring user_name()
     throw_win32_error_if(!::GetUserNameW(&name[0], &size), "GetUserNameW");
     name.pop_back();
     return name;
+}
+
+std::wstring integrity_level()
+{
+    HANDLE hToken = nullptr;
+
+    if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &hToken))
+    {
+        return L"<unknown>";
+    }
+
+    scoped_handle token = hToken;
+
+    DWORD size = 0;
+
+    ::GetTokenInformation(token, TokenIntegrityLevel, nullptr, 0, &size);
+    std::vector<BYTE> buffer(size, 0);
+
+    auto til = reinterpret_cast<PTOKEN_MANDATORY_LABEL>(buffer.data());
+
+    if (!::GetTokenInformation(token, TokenIntegrityLevel, til, size, &size))
+    {
+        return L"<unknown>";
+    }
+
+    const auto level = *::GetSidSubAuthority(til->Label.Sid, *GetSidSubAuthorityCount(til->Label.Sid) - 1);
+    
+    auto display_level = std::to_wstring(level) + L" ";
+
+    if (level == SECURITY_MANDATORY_LOW_RID)
+    {
+        display_level += L"(low)";
+    }
+    else if ((level >= SECURITY_MANDATORY_MEDIUM_RID) && (level < SECURITY_MANDATORY_HIGH_RID))
+    {
+        display_level += L"(medium)";
+    }
+    else if ((level >= SECURITY_MANDATORY_HIGH_RID) && (level < SECURITY_MANDATORY_SYSTEM_RID))
+    {
+        display_level += L"(high)";
+    }
+    else if (level >= SECURITY_MANDATORY_SYSTEM_RID)
+    {
+        display_level += L"(system)";
+    }
+
+    return display_level;
 }
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
@@ -150,12 +198,13 @@ void log_execution()
 
         std::wostringstream ss;
         ss << timestamp() << "\r\n"
-            L"\tUser:    " << user_name() << "\r\n"
-            L"\tPID:     " << pid << L" " << "\r\n"
-            L"\tExe:     " << executable_path() << "\r\n"
-            L"\tModule:  " << module_path() << "\r\n"
-            L"\tCmdline: " << ::GetCommandLineW() << L"\r\n"
-            L"\tCall:    ";
+            L"\tUser:       " << user_name() << "\r\n"
+            L"\tPID:        " << pid << L" " << "\r\n"
+            L"\tIntegrity:  " << integrity_level() << L" " << "\r\n"
+            L"\tExe:        " << executable_path() << "\r\n"
+            L"\tModule:     " << module_path() << "\r\n"
+            L"\tCmdline:    " << ::GetCommandLineW() << L"\r\n"
+            L"\tCall:       ";
         auto it = snapshot.find(pid);
         for (;;)
         {
